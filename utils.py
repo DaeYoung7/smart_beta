@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 def MDD(arr):
-    low = np.argmax(np.maximum.accumulate(arr) - arr)
+    low = np.argmin(arr / np.maximum.accumulate(arr))
     high = np.argmax(arr[:low])
     return high, low, (arr[high] - arr[low]) / arr[high]
 

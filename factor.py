@@ -5,7 +5,7 @@ import datetime
 def read_data(kospi_kosdaq, fn):
     df_list = []
     for i in fn:
-        df_list.append(pd.read_csv("../../jupyter/smart_beta/" + kospi_kosdaq + "/" + i + ".csv", index_col='date', parse_dates=True))
+        df_list.append(pd.read_csv("../../jupyter/smart_beta/data/" + kospi_kosdaq + "/" + i + ".csv", index_col='date', parse_dates=True))
     return df_list
 
 def modify_data(price, quality, value, shift_size):
@@ -26,11 +26,11 @@ def modify_data(price, quality, value, shift_size):
 
     quality_list = []
     for i in quality:
-        quality_list.append(pd.DataFrame(index=m_ret.index).join(quality[0]).shift(shift_size))
+        quality_list.append(pd.DataFrame(index=m_ret.index).join(i).shift(shift_size))
 
     value_list = []
     for i in value:
-        per = (m_pm / (m_p / i)).shift(shift_size)
+        value_list.append((m_pm / (m_p / i)).shift(shift_size))
 
     # 최근 주가로 계산 (eps를 shift)
     value_recent_list = []
@@ -39,7 +39,7 @@ def modify_data(price, quality, value, shift_size):
 
     return m_p, m_pm, m_cap, m_ret, quality_list, value_list, value_recent_list
 
-def quality_factor(quality):
+def quality_factor(quality, compare_pivot):
     gp = quality[0]
     ast = quality[1]
     lb = quality[2]
@@ -52,15 +52,15 @@ def quality_factor(quality):
     turn = sl / ast
 
     # 성장성 팩터(수익성 팩터, 5년 전과 비교해서 변화 정도 / 총자산)
-    gpoa_d = (gpoa - gpoa.shift(60)) / ast.shift(60)
-    cfoa_d = (cfoa - cfoa.shift(60)) / ast.shift(60)
-    gmar_d = (gmar - gmar.shift(60)) / sl.shift(60)
+    gpoa_d = (gpoa - gpoa.shift(compare_pivot)) / ast.shift(compare_pivot)
+    cfoa_d = (cfoa - cfoa.shift(compare_pivot)) / ast.shift(compare_pivot)
+    gmar_d = (gmar - gmar.shift(compare_pivot)) / sl.shift(compare_pivot)
     turn_d = sl / ast - sl.shift(12) / ast.shift(12)
 
     # 안정성 팩터
     lev = lb / ast  # 총부채 / 총자산
-    gpvol = gpoa.rolling(60).std()  # gross profit volatility
-    cfvol = cfoa.rolling(60).std()  # cashflow volatility
+    gpvol = gpoa.rolling(compare_pivot).std()  # gross profit volatility
+    cfvol = cfoa.rolling(compare_pivot).std()  # cashflow volatility
 
     gpoa_rank = gpoa.rank(axis=1, ascending=False)
     cfoa_rank = cfoa.rank(axis=1, ascending=False)
@@ -110,3 +110,5 @@ def value_factor(value):
     total_vz = per_z.T + pbr_z.T + psr_z.T + pcr_z.T
     return total_vz
 
+def momentum_factor(ret, back, forward):
+    return ret / ret.shift(back) - ret / ret.shift(forward)
